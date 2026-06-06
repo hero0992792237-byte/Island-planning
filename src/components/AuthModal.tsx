@@ -40,24 +40,11 @@ export default function AuthModal({ onClose }: Props) {
     setError('')
 
     try {
-      console.log('[AuthModal] 开始登录流程...')
-      console.log('[AuthModal] 邮箱:', email.trim())
-      console.log('[AuthModal] 密码长度:', password.length)
-
       const { data, error } = await signIn(email.trim(), password)
-      console.log('[AuthModal] signIn result:', { data, error })
 
       // Supabase 常见错误翻译
       if (error) {
         const rawMsg = error.message
-        const errorDetails = {
-          message: rawMsg,
-          name: error.name,
-          status: error.status,
-          code: error.code
-        }
-        console.error('[AuthModal] 登录错误详情:', errorDetails)
-
         const msg = rawMsg.includes('Invalid login credentials')
           ? '邮箱或密码错误'
           : rawMsg.includes('Email not confirmed')
@@ -72,27 +59,14 @@ export default function AuthModal({ onClose }: Props) {
 
       // session 为空：可能是 Cookie 被拦截、redirect URL 不匹配等
       if (!data?.session) {
-        const userId = (data as any)?.user?.id
-        console.error('[AuthModal] signIn returned no session, user:', userId)
-        console.error('[AuthModal] 可能的原因:')
-        console.error('  1. 浏览器阻止了 Cookie')
-        console.error('  2. 需要配置 Site URL 和 Redirect URLs')
-        console.error('  3. 网络问题导致 session 获取失败')
-        setError('登录成功但会话获取失败，请检查浏览器是否阻止了 Cookie，或刷新页面重试。如问题持续，请联系管理员检查 Supabase Site URL 配置。')
+        setError('登录成功但会话获取失败，请刷新页面重试')
         setLoading(false)
         return
       }
 
-      console.log('[AuthModal] 登录成功，session 已创建')
       setLoading(false)
       onClose()
     } catch (e: any) {
-      console.error('[AuthModal] signIn exception:', e)
-      console.error('[AuthModal] 异常详情:', {
-        message: e.message,
-        stack: e.stack,
-        name: e.name
-      })
       setError(e.message || '登录异常，请稍后重试')
       setLoading(false)
     }
@@ -121,7 +95,6 @@ export default function AuthModal({ onClose }: Props) {
 
     try {
       const { data, error } = await signUp(email.trim(), password, username.trim())
-      console.log('[AuthModal] signUp result:', { data, error })
       if (error) {
         setError(error.message)
         return
@@ -129,14 +102,12 @@ export default function AuthModal({ onClose }: Props) {
 
       // signUp 成功：检查是否直接返回了 session（无需邮件确认）
       if (data?.session) {
-        console.log('[AuthModal] signUp returned session, auto-logged in')
         return
       }
 
       // 尝试直接登录
       await new Promise(r => setTimeout(r, 500))
       const { data: loginData, error: loginError } = await signIn(email.trim(), password)
-      console.log('[AuthModal] signUp fallback signIn:', { hasSession: !!loginData?.session, error: loginError })
 
       if (loginError) {
         setError(loginError.message || '注册成功！但自动登录失败，请前往邮箱确认后手动登录')
@@ -152,7 +123,6 @@ export default function AuthModal({ onClose }: Props) {
 
       // loginData?.session 为真 → 登录成功
     } catch (e: any) {
-      console.error('[AuthModal] signUp exception:', e)
       setError(e.message || '注册异常，请稍后重试')
     } finally {
       setLoading(false)

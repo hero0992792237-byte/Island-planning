@@ -578,30 +578,26 @@ export default function TravelJournal() {
     }
   }, [])
 
-  // ---- 登录后从云端加载数据 ----
+  // ---- 登录后从云端加载数据（延迟执行避免阻塞 UI） ----
   useEffect(() => {
     const uid = userId
     if (!uid) return
-    async function syncFromCloud() {
-      if (!uid) return
+    const timer = setTimeout(async () => {
       // 加载云端行程
-      const { entries: cloudEntries, error: entryErr } = await loadCloudJournalEntries(uid)
-      if (!entryErr && cloudEntries && cloudEntries.length > 0) {
-        // 合并：云端 + 本地（去重）
+      const { entries: cloudEntries } = await loadCloudJournalEntries(uid)
+      if (cloudEntries && cloudEntries.length > 0) {
         const local = loadJournalEntries()
         const merged = [...cloudEntries]
         local.forEach((e) => {
           if (!merged.find((ce) => ce.id === e.id)) {
             merged.push(e)
-            // 把本地独有的同步到云端
             saveCloudJournalEntry(uid, e).catch(() => {/* ignore */})
           }
         })
         merged.sort((a, b) => b.createdAt - a.createdAt)
         saveJournalEntries(merged)
         setEntries(merged)
-      } else if (!entryErr && cloudEntries?.length === 0) {
-        // 云端无数据，把本地数据上传
+      } else if (cloudEntries?.length === 0) {
         const local = loadJournalEntries()
         if (local.length > 0) {
           for (const e of local) {
@@ -610,8 +606,8 @@ export default function TravelJournal() {
         }
       }
       // 加载云端相册
-      const { albums: cloudAlbums, error: albumErr } = await loadCloudAlbums(uid)
-      if (!albumErr && cloudAlbums && cloudAlbums.length > 0) {
+      const { albums: cloudAlbums } = await loadCloudAlbums(uid)
+      if (cloudAlbums && cloudAlbums.length > 0) {
         const local = loadAlbumMeta()
         const merged = [...cloudAlbums]
         local.forEach((a) => {
@@ -622,7 +618,7 @@ export default function TravelJournal() {
         })
         saveAlbumMeta(merged)
         setAlbums(merged)
-      } else if (!albumErr && cloudAlbums?.length === 0) {
+      } else if (cloudAlbums?.length === 0) {
         const local = loadAlbumMeta()
         if (local.length > 0) {
           for (const a of local) {
@@ -630,18 +626,20 @@ export default function TravelJournal() {
           }
         }
       }
-    }
-    syncFromCloud()
+    }, 500)
+    return () => clearTimeout(timer)
   }, [userId])
 
-  // ---- 同步监听 ----
+  // ---- 窗口聚焦时检查本地数据变更（其他标签页修改时同步） ----
   useEffect(() => {
-    const checkSync = () => {
-      setEntries(loadJournalEntries())
+    const handleFocus = () => {
+      if (!userId) {
+        setEntries(loadJournalEntries())
+      }
     }
-    const interval = setInterval(checkSync, 3000)
-    return () => clearInterval(interval)
-  }, [])
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [userId])
 
   return (
     <div className="relative min-h-[100dvh]">

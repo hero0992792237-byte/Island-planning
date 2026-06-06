@@ -275,11 +275,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data } = await supabase.auth.getSession()
         const session = data.session
-        console.log('[AppContext] loadSession:', { hasSession: !!session, userId: session?.user?.id })
         if (!isMounted) return
         if (session?.user) {
           const profileResult = await getUserProfile(session.user.id)
-          console.log('[AppContext] getUserProfile:', { ok: !profileResult.error, error: profileResult.error?.message })
           const profile = profileResult.data || undefined
           dispatch({ type: 'LOGIN', payload: { user: mapSupabaseUser(session.user, profile), token: session.access_token || null } })
           if (profile?.invite_count !== undefined) {
@@ -290,7 +288,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           try {
             const friendsResult = await getFriends(session.user.id)
-            console.log('[AppContext] getFriends:', { ok: !!friendsResult.data, error: friendsResult.error?.message })
             if (friendsResult.data) {
               dispatch({ type: 'SET_FRIENDS', payload: friendsResult.data.map((friend) => ({
                 id: friend.friend_id,
@@ -300,26 +297,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 status: friend.status,
               })) })
             }
-          } catch (e) {
-            console.error('[AppContext] getFriends exception:', e)
+          } catch {
+            // ignore
           }
         } else {
           dispatch({ type: 'LOGOUT' })
         }
-      } catch (e) {
-        console.error('[AppContext] loadSession exception:', e)
+      } catch {
+        // ignore
       }
     }
 
     loadSession()
 
-    subscription = supabase.auth.onAuthStateChange(async (event, session) => {
+    subscription = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return
-      console.log('[AppContext] onAuthStateChange:', { event, hasSession: !!session, userId: session?.user?.id })
       try {
         if (session?.user) {
           const profileResult = await getUserProfile(session.user.id)
-          console.log('[AppContext] onAuth getUserProfile:', { ok: !profileResult.error, error: profileResult.error?.message })
           const profile = profileResult.data || undefined
           dispatch({ type: 'LOGIN', payload: { user: mapSupabaseUser(session.user, profile), token: session.access_token || null } })
           if (profile?.invite_count !== undefined) {
@@ -330,7 +325,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           try {
             const friendsResult = await getFriends(session.user.id)
-            console.log('[AppContext] onAuth getFriends:', { ok: !!friendsResult.data, error: friendsResult.error?.message })
             if (friendsResult.data) {
               dispatch({ type: 'SET_FRIENDS', payload: friendsResult.data.map((friend) => ({
                 id: friend.friend_id,
@@ -340,14 +334,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 status: friend.status,
               })) })
             }
-          } catch (e) {
-            console.error('[AppContext] onAuth getFriends exception:', e)
+          } catch {
+            // ignore
           }
         } else {
           dispatch({ type: 'LOGOUT' })
         }
-      } catch (e) {
-        console.error('[AppContext] onAuthStateChange exception:', e)
+      } catch {
+        // ignore
       }
     }).data.subscription
 

@@ -46,13 +46,11 @@ export async function signIn(email: string, password: string) {
     email,
     password,
   })
-  console.log('[supabase] signIn:', { email, hasData: !!data, hasSession: !!data?.session, error })
   return { data, error }
 }
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
-  console.log('[supabase] signOut:', { error })
   return { error }
 }
 
