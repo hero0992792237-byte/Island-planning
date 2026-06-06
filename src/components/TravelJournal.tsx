@@ -25,6 +25,15 @@ import {
   deleteJournalEntry,
   updateJournalEntry,
 } from '../lib/journalDB'
+import { useApp } from '../context/AppContext'
+import {
+  loadCloudJournalEntries,
+  saveCloudJournalEntry,
+  deleteCloudJournalEntry,
+  loadCloudAlbums,
+  saveCloudAlbum,
+  deleteCloudAlbum,
+} from '../services/supabase'
 
 import JournalHeader from './travel/JournalHeader'
 import PlanView from './travel/PlanView'
@@ -366,6 +375,10 @@ export default function TravelJournal() {
 
   const currentAlbum = albums.find((a) => a.id === currentAlbumId) || null
 
+  // ---- 云端同步：获取当前登录用户 ----
+  const { state: appState } = useApp()
+  const userId = appState.userAuth.user?.id || null
+
   // ---- 新状态 ----
   const [view, setView] = useState<'plan' | 'month'>('plan')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -416,25 +429,38 @@ export default function TravelJournal() {
     })
   }, [])
 
-  // ---- 添加行程 ----
+  // ---- 添加行程（本地 + 云端） ----
   const handleAddEntry = useCallback((entry: JournalEntry) => {
     addJournalEntry(entry)
     setEntries(loadJournalEntries())
     setShowAddModal(false)
-  }, [])
+    // 同步到云端
+    if (userId) {
+      saveCloudJournalEntry(userId, entry).catch(() => {/* ignore */})
+    }
+  }, [userId])
 
-  // ---- 删除行程 ----
+  // ---- 删除行程（本地 + 云端） ----
   const handleDeleteEntry = useCallback((id: string) => {
     if (confirm('确定删除这条行程记录吗？')) {
       deleteJournalEntry(id)
       setEntries(loadJournalEntries())
+      // 从云端删除
+      if (userId) {
+        deleteCloudJournalEntry(userId, id).catch(() => {/* ignore */})
+      }
     }
-  }, [])
+  }, [userId])
 
+  // ---- 更新行程（本地 + 云端） ----
   const handleUpdateEntry = useCallback((entry: JournalEntry) => {
     updateJournalEntry(entry)
     setEntries(loadJournalEntries())
-  }, [])
+    // 同步到云端
+    if (userId) {
+      saveCloudJournalEntry(userId, entry).catch(() => {/* ignore */})
+    }
+  }, [userId])
 
   // ---- 原有照片集逻辑 ----
   useEffect(() => {
@@ -481,8 +507,12 @@ export default function TravelJournal() {
       saveAlbumMeta(updated)
       setShowCreateAlbumModal(false)
       setCurrentAlbumId(newAlbum.id)
+      // 同步到云端
+      if (userId) {
+        saveCloudAlbum(userId, newAlbum).catch(() => {/* ignore */})
+      }
     },
-    [albums]
+    [albums, userId]
   )
 
   const handleUpdateAlbum = useCallback(
@@ -492,13 +522,21 @@ export default function TravelJournal() {
         const updated = albums.filter((a) => a.id !== album.id)
         setAlbums(updated)
         saveAlbumMeta(updated)
+        // 从云端删除
+        if (userId) {
+          deleteCloudAlbum(userId, album.id).catch(() => {/* ignore */})
+        }
         return
       }
       const updated = albums.map((a) => (a.id === album.id ? album : a))
       setAlbums(updated)
       saveAlbumMeta(updated)
+      // 同步到云端
+      if (userId) {
+        saveCloudAlbum(userId, album).catch(() => {/* ignore */})
+      }
     },
-    [albums]
+    [albums, userId]
   )
 
   // ---- 初始化mock数据（仅首次）----
@@ -509,6 +547,62 @@ export default function TravelJournal() {
       setEntries(mockJournalEntries)
     }
   }, [])
+
+  // ---- 登录后从云端加载数据 ----
+  useEffect(() => {
+    const uid = userId
+    if (!uid) return
+    async function syncFromCloud() {
+      if (!uid) return
+      // 加载云端行程
+      const { entries: cloudEntries, error: entryErr } = await loadCloudJournalEntries(uid)
+      if (!entryErr && cloudEntries && cloudEntries.length > 0) {
+        // 合并：云端 + 本地（去重）
+        const local = loadJournalEntries()
+        const merged = [...cloudEntries]
+        local.forEach((e) => {
+          if (!merged.find((ce) => ce.id === e.id)) {
+            merged.push(e)
+            // 把本地独有的同步到云端
+            saveCloudJournalEntry(uid, e).catch(() => {/* ignore */})
+          }
+        })
+        merged.sort((a, b) => b.createdAt - a.createdAt)
+        saveJournalEntries(merged)
+        setEntries(merged)
+      } else if (!entryErr && cloudEntries?.length === 0) {
+        // 云端无数据，把本地数据上传
+        const local = loadJournalEntries()
+        if (local.length > 0) {
+          for (const e of local) {
+            await saveCloudJournalEntry(uid, e)
+          }
+        }
+      }
+      // 加载云端相册
+      const { albums: cloudAlbums, error: albumErr } = await loadCloudAlbums(uid)
+      if (!albumErr && cloudAlbums && cloudAlbums.length > 0) {
+        const local = loadAlbumMeta()
+        const merged = [...cloudAlbums]
+        local.forEach((a) => {
+          if (!merged.find((ca) => ca.id === a.id)) {
+            merged.push(a)
+            saveCloudAlbum(uid, a).catch(() => {/* ignore */})
+          }
+        })
+        saveAlbumMeta(merged)
+        setAlbums(merged)
+      } else if (!albumErr && cloudAlbums?.length === 0) {
+        const local = loadAlbumMeta()
+        if (local.length > 0) {
+          for (const a of local) {
+            await saveCloudAlbum(uid, a)
+          }
+        }
+      }
+    }
+    syncFromCloud()
+  }, [userId])
 
   // ---- 同步监听 ----
   useEffect(() => {

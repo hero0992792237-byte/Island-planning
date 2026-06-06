@@ -158,3 +158,149 @@ export async function removeFriend(userId: string, friendId: string) {
     .eq('friend_id', friendId)
   return { error }
 }
+
+// ======== Cloud Journal Entries ========
+
+export interface DbJournalEntry {
+  id: string
+  user_id: string
+  entry_id: string
+  title: string
+  category: string
+  start_time: string
+  end_time: string
+  location_name: string | null
+  location_address: string | null
+  location_lat: number | null
+  location_lng: number | null
+  description: string
+  cost: number
+  photo_ids: string[]
+  source: string
+  status: string
+  created_at: string
+}
+
+function toDbJournalEntry(entry: import('../types').JournalEntry, userId: string) {
+  return {
+    user_id: userId,
+    entry_id: entry.id,
+    title: entry.title,
+    category: entry.category,
+    start_time: entry.startTime,
+    end_time: entry.endTime,
+    location_name: entry.location.name || null,
+    location_address: entry.location.address || null,
+    location_lat: entry.location.lat || null,
+    location_lng: entry.location.lng || null,
+    description: entry.description,
+    cost: entry.cost,
+    photo_ids: entry.photoIds,
+    source: entry.source,
+    status: entry.status,
+    created_at: new Date(entry.createdAt).toISOString(),
+  }
+}
+
+function fromDbJournalEntry(row: DbJournalEntry): import('../types').JournalEntry {
+  return {
+    id: row.entry_id,
+    title: row.title,
+    category: row.category as import('../types').JournalCategory,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    location: {
+      name: row.location_name || '',
+      address: row.location_address || undefined,
+      lat: row.location_lat || undefined,
+      lng: row.location_lng || undefined,
+    },
+    description: row.description,
+    cost: row.cost,
+    photoIds: row.photo_ids || [],
+    source: row.source as 'ai' | 'manual',
+    status: row.status as 'planned' | 'completed' | 'missed',
+    createdAt: new Date(row.created_at).getTime(),
+  }
+}
+
+export async function loadCloudJournalEntries(userId: string) {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) return { entries: null, error }
+  return { entries: (data as DbJournalEntry[]).map(fromDbJournalEntry), error: null }
+}
+
+export async function saveCloudJournalEntry(userId: string, entry: import('../types').JournalEntry) {
+  const { error } = await supabase
+    .from('journal_entries')
+    .upsert(toDbJournalEntry(entry, userId), { onConflict: 'user_id,entry_id' })
+  return { error }
+}
+
+export async function deleteCloudJournalEntry(userId: string, entryId: string) {
+  const { error } = await supabase
+    .from('journal_entries')
+    .delete()
+    .eq('user_id', userId)
+    .eq('entry_id', entryId)
+  return { error }
+}
+
+// ======== Cloud Albums ========
+
+export interface DbAlbum {
+  id: string
+  user_id: string
+  album_id: string
+  name: string
+  photo_ids: string[]
+  created_at: number
+}
+
+function toDbAlbum(album: import('../lib/journalDB').AlbumMeta, userId: string) {
+  return {
+    user_id: userId,
+    album_id: album.id,
+    name: album.name,
+    photo_ids: album.photoIds,
+    created_at: album.createdAt,
+  }
+}
+
+function fromDbAlbum(row: DbAlbum): import('../lib/journalDB').AlbumMeta {
+  return {
+    id: row.album_id,
+    name: row.name,
+    photoIds: row.photo_ids || [],
+    createdAt: row.created_at,
+  }
+}
+
+export async function loadCloudAlbums(userId: string) {
+  const { data, error } = await supabase
+    .from('albums')
+    .select('*')
+    .eq('user_id', userId)
+  if (error) return { albums: null, error }
+  return { albums: (data as DbAlbum[]).map(fromDbAlbum), error: null }
+}
+
+export async function saveCloudAlbum(userId: string, album: import('../lib/journalDB').AlbumMeta) {
+  const { error } = await supabase
+    .from('albums')
+    .upsert(toDbAlbum(album, userId), { onConflict: 'user_id,album_id' })
+  return { error }
+}
+
+export async function deleteCloudAlbum(userId: string, albumId: string) {
+  const { error } = await supabase
+    .from('albums')
+    .delete()
+    .eq('user_id', userId)
+    .eq('album_id', albumId)
+  return { error }
+}
