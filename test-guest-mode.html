@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>访客模式测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f8f7f4;
+    }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h1 { margin-top: 0; color: #1f2937; }
+    .status {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status.active {
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+    .status.inactive {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    button {
+      background: #000;
+      color: #fff;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover { background: #333; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .info {
+      background: #f0f9ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      border-left: 4px solid #3b82f6;
+    }
+    .success {
+      background: #f0fdf4;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      border-left: 4px solid #16a34a;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0;
+    }
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+    .check { color: #16a34a; font-weight: bold; }
+    .cross { color: #dc2626; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎉 访客模式测试</h1>
+    <p>访客模式已启用！您可以直接使用应用而无需登录。</p>
+
+    <div style="margin: 20px 0;">
+      <span id="loginStatus" class="status">检测中...</span>
+    </div>
+
+    <div class="success">
+      <strong>✅ 访客模式已启用</strong><br>
+      应用现在可以直接使用，无需登录！
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 访客模式功能</h2>
+    <ul class="feature-list">
+      <li><span class="check">✓</span> AI 行程规划（1000 次免费额度）</li>
+      <li><span class="check">✓</span> 本地偏好设置保存</li>
+      <li><span class="check">✓</span> 语音输入</li>
+      <li><span class="check">✓</span> 地图查看</li>
+      <li><span class="cross">✗</span> 邀请好友（需登录）</li>
+      <li><span class="cross">✗</span> 云端同步（需登录）</li>
+      <li><span class="cross">✗</span> 好友系统（需登录）</li>
+    </ul>
+
+    <div class="info">
+      <strong>💡 提示</strong><br>
+      点击右上角的用户图标可以随时登录，登录后可获得更多功能和额度。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔗 快速链接</h2>
+    <button onclick="window.location.href='/'">打开应用主页面</button>
+    <button onclick="checkAuthStatus()">检查认证状态</button>
+  </div>
+
+  <div class="card">
+    <h2>📊 当前状态</h2>
+    <div id="statusDetails">
+      <p style="color: #6b7280;">点击上方按钮检查状态...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const SUPABASE_URL = 'https://fvvchxwtdloraozwdrfc.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2dmNoeHd0ZGxvcmFvendkcmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNTU0NTgsImV4cCI6MjA5NTgzMTQ1OH0.6SE6MOqzcmqvPZgAlBpIgDxzC202d4j-v-7lbg2on0w'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    // 检查认证状态
+    window.checkAuthStatus = async function() {
+      const statusDetails = document.getElementById('statusDetails')
+      statusDetails.innerHTML = '<p>正在检查...</p>'
+
+      try {
+        const { data, error } = await supabase.auth.getSession()
+
+        if (error) {
+          statusDetails.innerHTML = `
+            <div style="color: #dc2626;">
+              <strong>错误</strong><br>
+              ${error.message}
+            </div>
+          `
+        } else if (data?.session) {
+          statusDetails.innerHTML = `
+            <div style="color: #16a34a;">
+              <strong>✓ 已有活跃会话</strong><br>
+              用户: ${data.user.email}<br>
+              ID: ${data.user.id.slice(0, 8)}...
+            </div>
+          `
+        } else {
+          statusDetails.innerHTML = `
+            <div style="color: #f59e0b;">
+              <strong>ℹ️ 无活跃会话（访客模式）</strong><br>
+              这是正常的！应用使用访客模式运行。<br>
+              点击用户中心可以随时登录。
+            </div>
+          `
+        }
+      } catch (e) {
+        statusDetails.innerHTML = `
+          <div style="color: #dc2626;">
+            <strong>异常</strong><br>
+            ${e.message}
+          </div>
+        `
+      }
+    }
+
+    // 页面加载时检查状态
+    checkAuthStatus()
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: #fafafa;
+    color: #1c1c1e;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  input, textarea {
+    user-select: auto;
+    -webkit-user-select: auto;
+    font-size: 16px;
+  }
+}
+
+@layer utilities {
+  /* 柔和阴影 */
+  .shadow-soft {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+  }
+  .shadow-soft-hover {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+  .shadow-glow-blue {
+    box-shadow: 0 4px 20px rgba(74, 123, 247, 0.15);
+  }
+
+  /* 蓝调渐变 */
+  .gradient-blue {
+    background: linear-gradient(135deg, #5B8DEF 0%, #4A7BF7 50%, #3D6AE0 100%);
+  }
+  .gradient-blue-soft {
+    background: linear-gradient(180deg, rgba(91,141,239,0.12) 0%, rgba(74,123,247,0.04) 60%, transparent 100%);
+  }
+
+  /* 简约卡片 */
+  .card-white {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  /* 滚动条隐藏 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .touch-none {
+    touch-action: none;
+  }
+
+  /* 字体 */
+  .font-headline {
+    font-family: 'Noto Serif SC', 'Noto Serif', 'STSong', 'SimSun', serif;
+  }
+  .font-display {
+    font-family: 'Noto Serif SC', 'Noto Serif', 'STSong', 'SimSun', serif;
+  }
+  .font-label {
+    font-family: 'Noto Sans SC', 'Public Sans', sans-serif;
+  }
+  .font-body {
+    font-family: 'Noto Sans SC', 'Inter', sans-serif;
+  }
+
+  /* 文字截断 */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* iOS safe area support */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* 当添加行程弹窗打开时，降低 FloatingIsland 的层级以避免遮挡 */
+body.modal-open .floating-island {
+  z-index: 50 !important;
+}

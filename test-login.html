@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      background: #000;
+      color: #fff;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:disabled {
+      background: #ccc;
+    }
+    .error {
+      color: #ef4444;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fef2f2;
+      border-radius: 6px;
+    }
+    .success {
+      color: #10b981;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f0fdf4;
+      border-radius: 6px;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f7f4;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>登录诊断测试</h1>
+
+  <div class="form-group">
+    <label>邮箱</label>
+    <input type="email" id="email" placeholder="your@email.com" />
+  </div>
+
+  <div class="form-group">
+    <label>密码</label>
+    <input type="password" id="password" placeholder="输入密码" />
+  </div>
+
+  <button id="loginBtn" onclick="testLogin()">测试登录</button>
+
+  <div id="result"></div>
+
+  <div class="info">
+    <strong>Supabase 配置：</strong><br>
+    URL: https://fvvchxwtdloraozwdrfc.supabase.co<br>
+    <br>
+    <strong>测试步骤：</strong><br>
+    1. 输入您的 Supabase 账号邮箱和密码<br>
+    2. 点击"测试登录"<br>
+    3. 查看下方错误信息
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const SUPABASE_URL = 'https://fvvchxwtdloraozwdrfc.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2dmNoeHd0ZGxvcmFvendkcmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNTU0NTgsImV4cCI6MjA5NTgzMTQ1OH0.6SE6MOqzcmqvPZgAlBpIgDxzC202d4j-v-7lbg2on0w'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    window.testLogin = async function() {
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+      const resultDiv = document.getElementById('result')
+      const btn = document.getElementById('loginBtn')
+
+      if (!email || !password) {
+        resultDiv.innerHTML = '<div class="error">请填写邮箱和密码</div>'
+        return
+      }
+
+      btn.disabled = true
+      btn.textContent = '登录中...'
+      resultDiv.innerHTML = ''
+
+      try {
+        console.log('开始登录测试...')
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        })
+
+        console.log('登录结果:', { data, error })
+
+        if (error) {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <strong>登录失败</strong><br>
+              错误类型: ${error.name || 'Unknown'}<br>
+              错误信息: ${error.message}<br>
+              状态码: ${error.status || 'N/A'}
+            </div>
+          `
+        } else if (data.session) {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <strong>✓ 登录成功！</strong><br>
+              用户ID: ${data.user.id}<br>
+              Email: ${data.user.email}<br>
+              Session 已创建
+            </div>
+          `
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <strong>登录状态异常</strong><br>
+              返回了用户但没有 session
+            </div>
+          `
+        }
+      } catch (e) {
+        console.error('登录异常:', e)
+        resultDiv.innerHTML = `
+          <div class="error">
+            <strong>发生异常</strong><br>
+            ${e.message || e.toString()}
+          </div>
+        `
+      } finally {
+        btn.disabled = false
+        btn.textContent = '测试登录'
+      }
+    }
+  </script>
+</body>
+</html>
