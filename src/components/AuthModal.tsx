@@ -100,28 +100,24 @@ export default function AuthModal({ onClose }: Props) {
         return
       }
 
-      // signUp 成功：检查是否直接返回了 session（无需邮件确认）
+      // signUp 成功且直接返回 session（免验证注册）→ 关闭弹窗
       if (data?.session) {
+        onClose()
         return
       }
 
-      // 尝试直接登录
+      // signUp 成功但未返回 session（需要邮箱验证）→ 尝试直接登录
       await new Promise(r => setTimeout(r, 500))
       const { data: loginData, error: loginError } = await signIn(email.trim(), password)
 
-      if (loginError) {
-        setError(loginError.message || '注册成功！但自动登录失败，请前往邮箱确认后手动登录')
+      if (loginError || !loginData?.session) {
+        setError('注册成功！请切换到登录页手动登录')
         setMode('login')
         return
       }
 
-      if (!loginData?.session) {
-        setError('注册成功！请前往邮箱完成验证后登录')
-        setMode('login')
-        return
-      }
-
-      // loginData?.session 为真 → 登录成功
+      // 自动登录成功 → 关闭弹窗
+      onClose()
     } catch (e: any) {
       setError(e.message || '注册异常，请稍后重试')
     } finally {
