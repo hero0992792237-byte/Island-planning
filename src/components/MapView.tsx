@@ -188,7 +188,7 @@ export default function MapView({ plan, amapKey }: Props) {
   const city = state.location.city || '南京'
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
-  const [routeSource, setRouteSource] = useState<'amap' | 'osrm' | 'fallback' | null>(null)
+  const [, setRouteSource] = useState<'amap' | 'osrm' | 'fallback' | null>(null)
   const [loadStatus, setLoadStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 

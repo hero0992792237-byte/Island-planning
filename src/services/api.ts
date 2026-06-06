@@ -757,9 +757,9 @@ export async function generatePlanFromConversation(
 // ============ Mock Booking APIs ============
 
 export async function checkAvailability(
-  restaurantId: string,
-  datetime: string,
-  people: number
+  _restaurantId: string,
+  _datetime: string,
+  _people: number
 ): Promise<ApiResponse<{ available: boolean; queueMinutes: number }>> {
   await delay(300);
   const rand = Math.random();
@@ -773,8 +773,8 @@ export async function checkAvailability(
 
 export async function bookActivity(
   activityId: string,
-  datetime: string,
-  participants: number
+  _datetime: string,
+  _participants: number
 ): Promise<ApiResponse<{ bookingId: string; totalPrice: number; qrCode: string }>> {
   await delay(600);
   return {
@@ -790,8 +790,8 @@ export async function bookActivity(
 
 export async function bookRestaurant(
   restaurantId: string,
-  datetime: string,
-  people: number
+  _datetime: string,
+  _people: number
 ): Promise<ApiResponse<{ bookingId: string; expireMinutes: number }>> {
   await delay(600);
   return {
@@ -807,7 +807,7 @@ export async function bookRestaurant(
 export async function orderGift(
   type: string,
   deliveryTime: string,
-  message: string
+  _message: string
 ): Promise<ApiResponse<{ orderId: string; trackingUrl: string }>> {
   await delay(500);
   return {
@@ -820,7 +820,7 @@ export async function orderGift(
   };
 }
 
-export async function sendPlan(contact: string, summary: string): Promise<ApiResponse<null>> {
+export async function sendPlan(contact: string, _summary: string): Promise<ApiResponse<null>> {
   await delay(400);
   return { success: true, message: `已发送给${contact}` };
 }

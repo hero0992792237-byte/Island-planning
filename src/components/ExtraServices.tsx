@@ -10,16 +10,6 @@ export default function ExtraServices() {
   const [message, setMessage] = useState('')
   const [enabled, setEnabled] = useState(false)
 
-  const restaurantName = state.plan?.restaurant.name || ''
-  // Meituan Waimai (food delivery) search URL
-  const meituanUrl = restaurantName
-    ? `https://waimai.meituan.com/search?keyword=${encodeURIComponent(restaurantName)}`
-    : 'https://waimai.meituan.com'
-  // Meituan group-buy search URL
-  const meituanGroupUrl = restaurantName
-    ? `https://www.meituan.com/s/${encodeURIComponent(restaurantName)}/`
-    : 'https://www.meituan.com'
-
   const handleToggle = () => {
     setEnabled(!enabled)
     if (!enabled) {

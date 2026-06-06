@@ -60,7 +60,7 @@ function PhotoPreview({ photoIds }: { photoIds: string[] }) {
   )
 }
 
-export default function TimelineView({ entries, onEntryClick, onDeleteEntry }: Props) {
+export default function TimelineView({ entries, onEntryClick: _onEntryClick, onDeleteEntry }: Props) {
   const grouped = entries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
     const date = entry.startTime.split('T')[0]
     if (!acc[date]) acc[date] = []

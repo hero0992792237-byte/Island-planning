@@ -104,7 +104,7 @@ export default function MonthView({ entries, year, month, onDeleteEntry }: Props
 
       {/* 日历网格 */}
       <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map(({ day, isCurrentMonth, date }, idx) => {
+        {calendarDays.map(({ isCurrentMonth, date }, idx) => {
           const dayNum = date.getDate()
           const entriesForDay = isCurrentMonth ? dayEntries[dayNum] || [] : []
           const hasEntries = entriesForDay.length > 0

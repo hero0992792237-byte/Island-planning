@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { MapPin, Clock, Trash2, Plus, X, Loader2, ImageIcon } from 'lucide-react'
+import { MapPin, Clock, Trash2, X, Loader2, ImageIcon } from 'lucide-react'
 import type { JournalEntry } from '../../types'
 import CategoryBadge from './CategoryBadge'
 import { getPhoto, savePhoto, compressImage } from '../../lib/journalDB'
