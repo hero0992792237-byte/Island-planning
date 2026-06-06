@@ -141,3 +141,21 @@ create policy "Users can update own albums" on public.albums for update using (a
 
 drop policy if exists "Users can delete own albums" on public.albums;
 create policy "Users can delete own albums" on public.albums for delete using (auth.uid() = user_id);
+
+-- ============================
+-- Storage: journal-photos bucket
+-- ============================
+insert into storage.buckets (id, name, public) values ('journal-photos', 'journal-photos', false)
+on conflict (id) do nothing;
+
+drop policy if exists "Users can view own photos" on storage.objects;
+create policy "Users can view own photos" on storage.objects for select
+using (bucket_id = 'journal-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "Users can upload own photos" on storage.objects;
+create policy "Users can upload own photos" on storage.objects for insert
+with check (bucket_id = 'journal-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "Users can delete own photos" on storage.objects;
+create policy "Users can delete own photos" on storage.objects for delete
+using (bucket_id = 'journal-photos' and auth.uid()::text = (storage.foldername(name))[1]);

@@ -33,6 +33,9 @@ import {
   loadCloudAlbums,
   saveCloudAlbum,
   deleteCloudAlbum,
+  uploadPhotoToStorage,
+  getPhotoFromStorage,
+  deletePhotoFromStorage,
 } from '../services/supabase'
 
 import JournalHeader from './travel/JournalHeader'
@@ -120,11 +123,13 @@ function AlbumDetail({
   photoData,
   onBack,
   onUpdate,
+  userId,
 }: {
   album: AlbumMeta
   photoData: Record<string, string>
   onBack: () => void
   onUpdate: (album: AlbumMeta) => void
+  userId?: string | null
 }) {
   const [name, setName] = useState(album.name)
   const [isEditing, setIsEditing] = useState(false)
@@ -160,6 +165,10 @@ function AlbumDetail({
           const compressed = await compressImage(base64, 1280, 0.8)
           const photoId = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
           await savePhoto(photoId, album.id, compressed)
+          // 同步到云端 Storage
+          if (userId) {
+            uploadPhotoToStorage(userId, photoId, compressed).catch(() => { /* ignore */ })
+          }
           newIds.push(photoId)
         } catch {
           // skip failed
@@ -174,26 +183,36 @@ function AlbumDetail({
       setUploading(false)
       e.target.value = ''
     },
-    [album, onUpdate]
+    [album, onUpdate, userId]
   )
 
   const handleDeletePhoto = useCallback(
     async (index: number) => {
       const photoId = album.photoIds[index]
       await deletePhoto(photoId)
+      // 从云端 Storage 删除
+      if (userId) {
+        deletePhotoFromStorage(userId, photoId).catch(() => { /* ignore */ })
+      }
       const updatedIds = album.photoIds.filter((_, i) => i !== index)
       onUpdate({ ...album, photoIds: updatedIds })
     },
-    [album, onUpdate]
+    [album, onUpdate, userId]
   )
 
   const handleDeleteAlbum = useCallback(async () => {
     if (confirm('确定删除这个相册吗？照片将无法恢复。')) {
       await deletePhotosByAlbum(album.id)
+      // 从云端 Storage 删除所有照片
+      if (userId) {
+        for (const photoId of album.photoIds) {
+          deletePhotoFromStorage(userId, photoId).catch(() => { /* ignore */ })
+        }
+      }
       onUpdate({ ...album, photoIds: [], _deleted: true } as any)
       onBack()
     }
-  }, [album, onUpdate, onBack])
+  }, [album, onUpdate, onBack, userId])
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -462,14 +481,20 @@ export default function TravelJournal() {
     }
   }, [userId])
 
-  // ---- 原有照片集逻辑 ----
+  // ---- 照片集逻辑（本地 + 云端回退） ----
   useEffect(() => {
     let cancelled = false
     async function loadCovers() {
       const map: Record<string, string> = {}
       for (const album of albums) {
         if (album.photoIds.length > 0) {
-          const data = await getPhoto(album.photoIds[0])
+          const photoId = album.photoIds[0]
+          let data = await getPhoto(photoId)
+          // 本地没有且已登录，从云端 Storage 下载
+          if (!data && userId) {
+            data = await getPhotoFromStorage(userId, photoId)
+            if (data) await savePhoto(photoId, album.id, data)
+          }
           if (data) map[album.id] = data
         }
       }
@@ -477,7 +502,7 @@ export default function TravelJournal() {
     }
     loadCovers()
     return () => { cancelled = true }
-  }, [albums])
+  }, [albums, userId])
 
   useEffect(() => {
     let cancelled = false
@@ -485,14 +510,19 @@ export default function TravelJournal() {
       if (!currentAlbum) return
       const map: Record<string, string> = {}
       for (const photoId of currentAlbum.photoIds) {
-        const data = await getPhoto(photoId)
+        let data = await getPhoto(photoId)
+        // 本地没有且已登录，从云端 Storage 下载
+        if (!data && userId) {
+          data = await getPhotoFromStorage(userId, photoId)
+          if (data) await savePhoto(photoId, currentAlbum.id, data)
+        }
         if (data) map[photoId] = data
       }
       if (!cancelled) setPhotoData(map)
     }
     loadPhotos()
     return () => { cancelled = true }
-  }, [currentAlbum])
+  }, [currentAlbum, userId])
 
   const handleCreateAlbum = useCallback(
     (name: string) => {
@@ -622,6 +652,7 @@ export default function TravelJournal() {
           photoData={photoData}
           onBack={() => setCurrentAlbumId(null)}
           onUpdate={handleUpdateAlbum}
+          userId={userId}
         />
       ) : (
         <>

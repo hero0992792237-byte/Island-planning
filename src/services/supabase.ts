@@ -304,3 +304,53 @@ export async function deleteCloudAlbum(userId: string, albumId: string) {
     .eq('album_id', albumId)
   return { error }
 }
+
+// ======== Photo Storage ========
+
+const PHOTO_BUCKET = 'journal-photos'
+
+function base64ToBlob(base64: string): Blob {
+  const parts = base64.split(',')
+  const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg'
+  const bstr = atob(parts[1] || parts[0])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n)
+  }
+  return new Blob([u8arr], { type: mime })
+}
+
+function storagePath(userId: string, photoId: string): string {
+  return `${userId}/${photoId}`
+}
+
+export async function uploadPhotoToStorage(userId: string, photoId: string, base64Data: string) {
+  const path = storagePath(userId, photoId)
+  const blob = base64ToBlob(base64Data)
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+  return { error }
+}
+
+export async function getPhotoFromStorage(userId: string, photoId: string): Promise<string | null> {
+  const path = storagePath(userId, photoId)
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .download(path)
+  if (error || !data) return null
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.readAsDataURL(data)
+  })
+}
+
+export async function deletePhotoFromStorage(userId: string, photoId: string) {
+  const path = storagePath(userId, photoId)
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .remove([path])
+  return { error }
+}
