@@ -97,22 +97,13 @@ const initialState: AppState = {
   },
   voiceInputText: '',
   userAuth: {
-    isLoggedIn: true,  // 默认已登录（访客模式）
-    user: {
-      id: 'guest-user-' + Date.now(),
-      username: 'guest',
-      email: 'guest@example.com',
-      displayName: '访客用户',
-      avatar: undefined,
-      phone: undefined,
-      bio: undefined,
-      createdAt: Date.now(),
-    },
-    token: 'guest-token',
+    isLoggedIn: false,  // 默认未登录，启动时通过 Supabase session 恢复真实登录状态
+    user: null,
+    token: null,
     friends: [],
-    inviteCode: 'GUEST001',
+    inviteCode: '',
     inviteCount: 0,
-    freeApiQuota: 1000,  // 访客模式提供 1000 次免费额度
+    freeApiQuota: 0,
   },
 };
 
